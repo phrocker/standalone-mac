@@ -2,6 +2,7 @@ package com.mjwall.accumulo;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Path;
@@ -27,6 +28,10 @@ public class StandaloneMAC {
 
   public static void main(String[] args) {
 
+    int shutdownPort = -1;
+    if (args.length > 0) {
+      shutdownPort = Integer.parseInt(args[0]);
+    }
     File tempDir = null;
     MiniAccumuloClusterImpl cluster = null;
     boolean purgeTemp = false;
@@ -91,12 +96,18 @@ public class StandaloneMAC {
         System.out.println("Monitor running at " + monitorLocation);
       }
 
-      System.out.println("Starting a shell");
-      String[] shellArgs = new String[] {"-u", "root", "-p", rootPassword, "-z", instanceName, cluster.getZooKeepers()};
-      Shell shell = new Shell();
-      shell.config(shellArgs);
-      shell.start(); // this is the interactive
-      shell.shutdown();
+      if (shutdownPort > 0) {
+        ServerSocket serverSocket = new ServerSocket(shutdownPort);
+        Socket socket = serverSocket.accept();
+        serverSocket.close();
+      } else {
+        System.out.println("Starting a shell");
+        String[] shellArgs = new String[] {"-u", "root", "-p", rootPassword, "-z", instanceName, cluster.getZooKeepers()};
+        Shell shell = new Shell();
+        shell.config(shellArgs);
+        shell.start(); // this is the interactive
+        shell.shutdown();
+      }
 
     } catch (IOException | InterruptedException error) {
       System.err.println(error.getMessage());
